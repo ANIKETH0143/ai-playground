@@ -1,30 +1,39 @@
+# IMPORTANT: Import spaces first
+import spaces
+
 import torch
-import transformers
 import gradio as gr
-
-# print(torch.__version__)
-# print(transformers.__version__)
-
 
 from transformers import (
     AutoTokenizer,
     AutoModelForCausalLM
 )
 
-# -----------------------------
-# 1. Load the local model
-# -----------------------------
 
-MODEL_PATH = "./models/smollm2"
+# ---------------------------------
+# 1. Model configuration
+# ---------------------------------
+
+MODEL_ID = "HuggingFaceTB/SmolLM2-360M-Instruct"
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 print(f"Loading model on {device}...")
 
-tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
+
+# ---------------------------------
+# 2. Load model and tokenizer
+# ---------------------------------
+
+tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
 
 model = AutoModelForCausalLM.from_pretrained(
-    MODEL_PATH
+    MODEL_ID,
+    torch_dtype=(
+        torch.float16
+        if device == "cuda"
+        else torch.float32
+    )
 )
 
 model.to(device)
@@ -34,11 +43,12 @@ model.eval()
 print("Model loaded successfully!")
 
 
-# -----------------------------
-# 2. Define inference function
-# -----------------------------
+# ---------------------------------
+# 3. Inference function
+# ---------------------------------
 
-def generate_response(prompt):
+@spaces.GPU(duration=60)
+def generate_response(prompt: str) -> str:
 
     if not prompt.strip():
         return "Please enter a prompt."
@@ -84,16 +94,16 @@ def generate_response(prompt):
     return response
 
 
-# -----------------------------
-# 3. Create user interface
-# -----------------------------
+# ---------------------------------
+# 4. Gradio interface
+# ---------------------------------
 
 demo = gr.Interface(
     fn=generate_response,
 
     inputs=gr.Textbox(
         label="Ask your AI",
-        placeholder="Enter your question here...",
+        placeholder="Enter your question...",
         lines=5
     ),
 
@@ -102,17 +112,17 @@ demo = gr.Interface(
         lines=10
     ),
 
-    title="My First AI Playground",
+    title="My AI Playground",
 
     description=(
-        "A locally running LLM powered by "
-        "Hugging Face Transformers."
+        "An AI application powered by "
+        "SmolLM2 and Hugging Face Transformers."
     )
 )
 
 
-# -----------------------------
-# 4. Launch application
-# -----------------------------
+# ---------------------------------
+# 5. Launch application
+# ---------------------------------
 
 demo.launch()
